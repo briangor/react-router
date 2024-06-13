@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Outlet, NavLink, Link, useLoaderData, Form, redirect, useNavigation, useSubmit } from "react-router-dom";
 import { getContacts, createContact } from "../contacts";
 
@@ -7,10 +7,31 @@ export async function action() {
     return redirect(`/contacts/${contact.id}/edit`);
 }
 
+// trying another memoization
+const contactsCache = new Map();
+
 export async function loader({ request }) {
     const url = new URL(request.url);
     const q = url.searchParams.get("q");
+
+    // without memoization
+    /* console.time('timer (no memo)');
     const contacts = await getContacts(q);
+    console.timeEnd('timer (no memo)'); */
+
+    // with memoization: useMemo cannot work inside simple functions
+    // cannot work: can only be used inside a functional component or custom hook
+    // const contacts = useMemo( async () => await getContacts(q), [q]);
+
+    // memoization method 2
+    console.time('timer (memo)');
+    if (contactsCache.has(q)) {
+        return { contacts: contactsCache.get(q), q};
+    }
+    console.timeEnd('timer (memo)');
+    const contacts = await getContacts(q);
+    contactsCache.set(q, contacts);
+
     return { contacts, q };
 }
 
